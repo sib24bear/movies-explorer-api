@@ -1,5 +1,5 @@
 const { MONGO_DUPLICATE_ERROR_CODE } = require('../utils/constants');
-// eslint-disable-next-line
+
 module.exports = (err, req, res, next) => {
   if (err.name === 'ValidationError' || err.name === 'CastError' || err.statusCode === 400) {
     res.status(err.statusCode).send({ message: err.message });
@@ -18,4 +18,5 @@ module.exports = (err, req, res, next) => {
   }
 
   res.status(500).send({ message: 'Проблема с сервером' });
+  next();
 };
