@@ -4,61 +4,29 @@ const mongoose = require('mongoose');
 const bodyParser = require('body-parser');
 const cookieParser = require('cookie-parser');
 const helmet = require('helmet');
-const rateLimit = require('express-rate-limit');
 const cors = require('cors');
 const { errors } = require('celebrate');
-const auth = require('./middlewares/auth');
 const errorsHandler = require('./middlewares/errorsHandler');
-const { NotFoundError } = require('./errors/NotFoundError');
 const { requestLogger, errorLogger } = require('./middlewares/logger');
+const routes = require('./routes/index');
+const limiter = require('./middlewares/limiter');
+const { corsParams } = require('./utils/constants');
 
-const PORT = 3000;
+const { NODE_ENV, MONGO_DB_URL, PORT = 3000 } = process.env;
 const app = express();
-const limiter = rateLimit({
-  windowMs: 15 * 60 * 1000, // 15 minutes
-  max: 100, // Limit each IP to 100 requests per `window` (here, per 15 minutes)
-  standardHeaders: true, // Return rate limit info in the `RateLimit-*` headers
-  legacyHeaders: false, // Disable the `X-RateLimit-*` headers
-});
+
+mongoose.connect(NODE_ENV === 'production' ? MONGO_DB_URL : 'mongodb://localhost:27017/moviesdb');
 
 app.use(bodyParser.json());
-app.use(helmet());
-app.use(limiter);
 app.use(bodyParser.urlencoded({ extended: false }));
-app.use(cookieParser());
-
-mongoose.connect('mongodb://localhost:27017/bitfilmsdb');
-
-app.use(cors({
-  credentials: true,
-  origin: [
-    'https://localhost:3001',
-    'https://localhost:3000',
-    'http://localhost:3001',
-    'http://localhost:3000',
-  ],
-}));
-
 app.use(requestLogger);
-
-app.use('/signup', require('./routes/auth'));
-
-app.use('/signin', require('./routes/login'));
-
-app.use(auth);
-
-app.use('/users', require('./routes/users'));
-
-app.use('/movies', require('./routes/movies'));
-
-app.use((req, res, next) => {
-  next(new NotFoundError('Страница не существует'));
-});
-
+app.use(limiter);
+app.use(helmet());
+app.use(cors(corsParams));
+app.use(cookieParser());
+app.use(routes);
 app.use(errorLogger);
-
 app.use(errors());
-
 app.use(errorsHandler);
 
 app.listen(PORT, () => {

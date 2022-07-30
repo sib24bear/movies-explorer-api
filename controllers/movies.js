@@ -3,8 +3,15 @@ const { ForbiddenError } = require('../errors/ForbiddenError');
 const { NotFoundError } = require('../errors/NotFoundError');
 
 module.exports.getMovies = (req, res, next) => {
-  Movie.find({})
-    .then((movies) => res.send({ data: movies }))
+  const owner = req.user.id;
+  Movie.find({ owner })
+    .then((movies) => {
+      if (movies.length === 0) {
+        next(new NotFoundError('Нет сохраненных фильмов'));
+        return;
+      }
+      res.send({ data: movies });
+    })
     .catch(next);
 };
 

@@ -1,5 +1,5 @@
 const mongoose = require('mongoose');
-const { RegExpURL } = require('../utils/constants');
+const validator = require('validator');
 
 const movieSchema = new mongoose.Schema(
   {
@@ -27,7 +27,7 @@ const movieSchema = new mongoose.Schema(
       type: String,
       required: true,
       validate: {
-        validator: (v) => RegExpURL.test(v),
+        validator: (v) => validator.isURL(v),
         message: 'Неверный формат ссылки на постер',
       },
     },
@@ -35,7 +35,7 @@ const movieSchema = new mongoose.Schema(
       type: String,
       required: true,
       validate: {
-        validator: (v) => RegExpURL.test(v),
+        validator: (v) => validator.isURL(v),
         message: 'Неверный формат ссылки на трейлер',
       },
     },
@@ -43,7 +43,7 @@ const movieSchema = new mongoose.Schema(
       type: String,
       required: true,
       validate: {
-        validator: (v) => RegExpURL.test(v),
+        validator: (v) => validator.isURL(v),
         message: 'Неверный формат ссылки на постер',
       },
     },
@@ -53,7 +53,7 @@ const movieSchema = new mongoose.Schema(
       required: true,
     },
     movieId: {
-      type: String,
+      type: Number,
       required: true,
     },
     nameRU: {

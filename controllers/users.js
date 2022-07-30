@@ -1,9 +1,10 @@
-const bcrypt = require('bcrypt');
 const jwt = require('jsonwebtoken');
+const bcrypt = require('bcrypt');
 const User = require('../models/user');
 const { SALT_ROUNDS } = require('../utils/constants');
 const { NotFoundError } = require('../errors/NotFoundError');
-const { UnauthorizedError } = require('../errors/UnauthorizedError');
+
+const { NODE_ENV, SECRET_KEY } = process.env;
 
 module.exports.getMe = (req, res, next) => {
   User.findById(req.user.id)
@@ -53,29 +54,15 @@ module.exports.createUser = (req, res, next) => {
 module.exports.login = (req, res, next) => {
   const { email, password } = req.body;
 
-  User.findOne({ email })
-    .select('+password')
+  return User.findUserByCredentials(email, password)
     .then((user) => {
-      if (!user) {
-        next(new UnauthorizedError('Не правильный email или пароль'));
-        return;
-      }
-      // eslint-disable-next-line
-      return (Promise.all([
-        user,
-        bcrypt.compare(password, user.password),
-      ]));
-    })
-    .then(([user, isPasswordSuccess]) => {
-      if (!isPasswordSuccess) {
-        next(new UnauthorizedError('Не правильный email или пароль'));
-        return;
-      }
-      // eslint-disable-next-line
-      return (jwt.sign({ id: user._id }, process.env.SECRET_KEY, { expiresIn: '7d' }));
-    })
-    .then((token) => {
-      res.cookie('token', token, {
+      const token = (jwt.sign(
+        { id: user._id },
+        NODE_ENV === 'production' ? SECRET_KEY : 'secret-key',
+        { expiresIn: '7d' },
+      ));
+
+      return res.cookie('token', token, {
         maxAge: 3600000 * 24 * 7,
         httpOnly: true,
         sameSite: true,
